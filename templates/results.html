@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academic Results</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}">
+</head>
+<body class="classic-page">
+{% include "sidebar.html" %}
+<main class="portal-main">
+<div class="page-topbar"><h1>Academic Results</h1><p>Official marks published for {{ student.name }} · {{ student.roll_number }}</p></div>
+<div class="card" style="padding:22px; margin-bottom:18px;">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;">
+<div><h2 style="margin:0 0 6px;">University Results</h2><p style="margin:0;color:var(--muted);">View the published KRU results for all students.</p></div>
+<a href="https://krucet-results.vercel.app/results" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:11px 16px;background:#3b2416;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;">View University Results ↗</a>
+</div></div>
+<div class="card" style="padding:22px;">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;"><div class="summary-item"><small>Name</small><strong>{{ student.name }}</strong></div><div class="summary-item"><small>Class</small><strong>{{ student.class_name }}</strong></div><div class="summary-item"><small>Year</small><strong>{{ student.year }}</strong></div></div>
+<h2>Subject Results</h2>
+{% if marks_records %}<table><thead><tr><th>Subject</th><th>Internal</th><th>External</th><th>Total</th><th>Grade</th></tr></thead><tbody>{% for record in marks_records %}{% set total=record.internal+record.external %}<tr><td>{{ record.subject }}</td><td>{{ record.internal }}</td><td>{{ record.external }}</td><td><strong>{{ total }}</strong></td><td>{% if total >= 90 %}A+{% elif total >= 80 %}A{% elif total >= 70 %}B+{% elif total >= 60 %}B{% elif total >= 50 %}C{% else %}F{% endif %}</td></tr>{% endfor %}</tbody></table>{% else %}<div class="notice" style="padding:18px;"><strong>No results published yet.</strong><p style="margin-bottom:0;color:var(--muted);">Results will appear here after faculty enters marks.</p></div>{% endif %}
+</div>
+</main>
+</body>
+</html>

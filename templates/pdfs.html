@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+
+<title>PDFs</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+
+    body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f9;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1000px;
+        margin: auto;
+    }
+
+    h1 {
+        text-align: center;
+        color: #222;
+    }
+
+    .welcome {
+        text-align: center;
+        color: #555;
+    }
+
+    .card {
+        background: white;
+        padding: 20px;
+        margin-top: 25px;
+        border-radius: 12px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    th {
+        background: #2563eb;
+        color: white;
+        padding: 12px;
+    }
+
+    td {
+        padding: 12px;
+        border-bottom: 1px solid #ddd;
+        text-align: center;
+    }
+
+    .pdf-name {
+        font-weight: bold;
+    }
+
+    .save {
+        display: inline-block;
+        background: #16a34a;
+        color: white;
+        padding: 10px 18px;
+        border-radius: 7px;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    .save:hover {
+        background: #15803d;
+    }
+
+    .back {
+        display: inline-block;
+        margin-top: 20px;
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    @media(max-width: 600px) {
+
+        table {
+            font-size: 13px;
+        }
+
+        th,
+        td {
+            padding: 8px;
+        }
+
+        .save {
+            padding: 8px 12px;
+        }
+
+    }
+
+</style>
+
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}">
+</head>
+
+<body class="classic-page">
+{% include "sidebar.html" %}
+<main class="portal-main">
+
+<div class="container">
+
+
+<h1>📄 College PDFs</h1>
+
+<p class="welcome">
+    Welcome, {{ student.name }} 👋
+</p>
+
+
+<div class="card">
+
+    <h2>📚 Available PDFs</h2>
+
+
+    {% if pdfs %}
+
+    <table>
+
+        <tr>
+
+            <th>No.</th>
+            <th>PDF</th>
+            <th>Uploaded Date</th>
+            <th>Save</th>
+
+        </tr>
+
+
+        {% for pdf in pdfs %}
+
+        <tr>
+
+            <td>
+                {{ loop.index }}
+            </td>
+
+            <td class="pdf-name">
+                📄 {{ pdf.original_filename }}
+            </td>
+
+            <td>
+
+                {% set parts = pdf.upload_date.split('-') %}
+
+                {% if parts[0]|length == 4 %}
+
+                    {{ parts[2] }}/{{ parts[1] }}/{{ parts[0] }}
+
+                {% else %}
+
+                    {{ pdf.upload_date }}
+
+                {% endif %}
+
+            </td>
+
+            <td>
+
+                <a
+                    href="/download-pdf/{{ pdf.id }}"
+                    class="save"
+                >
+                    💾 Save PDF
+                </a>
+
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+    {% else %}
+
+    <p>
+        📭 No PDFs have been uploaded yet.
+    </p>
+
+    {% endif %}
+
+</div>
+
+
+<a
+    href="/dashboard"
+    class="back"
+>
+    ⬅ Back to Dashboard
+</a>
+<a href="/student-account">
+    ⚙️ Account Settings
+</a>
+
+
+</div>
+
+</main>
+</body>
+
+</html>

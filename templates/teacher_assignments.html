@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teacher Assignments</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}">
+</head>
+
+<body class="classic-page">
+{% include "sidebar.html" %}
+<main class="portal-main">
+
+    <h1>📝 Teacher Assignments</h1>
+
+    <h2>Welcome, {{ teacher.name }}</h2>
+
+    <p>Subject: {{ teacher.subject }}</p>
+
+    <hr>
+
+    <h2>➕ Add New Assignment</h2>
+
+<form
+    action="/teacher-assignments"
+    method="POST"
+    enctype="multipart/form-data"
+>
+        <p>Subject</p>
+        <input type="text" name="subject" required>
+
+        <p>Assignment Title</p>
+        <input type="text" name="title" required>
+
+        <p>Description</p>
+        <textarea name="description" required></textarea>
+
+       <p>Due Date</p>
+
+<input
+    type="date"
+    name="due_date"
+    required
+>
+
+<p>📎 Upload Picture / PDF</p>
+
+<input
+    type="file"
+    name="attachment"
+    accept=".pdf,.jpg,.jpeg,.png,.webp"
+>
+
+<p>
+    <small>
+        Allowed files: PDF, JPG, JPEG, PNG, WEBP
+    </small>
+</p>
+
+<br>
+
+<button type="submit">
+    ➕ Add Assignment
+</button>
+
+    </form>
+
+    <hr>
+
+    <h2>📚 Assignments</h2>
+
+    {% if assignments %}
+
+        {% for assignment in assignments %}
+
+            <div>
+                <h3>{{ assignment.title }}</h3>
+
+                <p>
+                    Subject: {{ assignment.subject }}
+                </p>
+
+                <p>
+                    Description: {{ assignment.description }}
+                </p>
+
+                <p>
+                    Due Date: {{ assignment.due_date }}
+                </p>
+                {% if assignment.attachments %}
+
+    <p>
+        <strong>📎 Attachment:</strong>
+    </p>
+
+    {% for attachment in assignment.attachments %}
+
+        <a
+            href="/assignment-file/{{ attachment.filename }}"
+            target="_blank"
+            style="
+                display:inline-block;
+                background:#2563eb;
+                color:white;
+                padding:10px 15px;
+                border-radius:8px;
+                text-decoration:none;
+                margin-bottom:10px;
+            "
+        >
+            📎 {{ attachment.original_filename }}
+        </a>
+
+    {% endfor %}
+
+{% endif %}
+
+                <form
+                    action="/delete-assignment/{{ assignment.id }}"
+                    method="POST"
+                >
+                    <button type="submit">
+                        Delete
+                    </button>
+                </form>
+
+            </div>
+
+            <hr>
+
+        {% endfor %}
+
+    {% else %}
+
+        <p>No assignments added yet.</p>
+
+    {% endif %}
+
+    <br>
+
+    <a href="/teacher-dashboard">
+        ⬅ Back to Teacher Dashboard
+    </a>
+
+</main>
+</body>
+</html>

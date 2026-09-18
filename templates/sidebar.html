@@ -1,0 +1,67 @@
+<aside class="portal-sidebar">
+  <div class="portal-brand"><span class="brand-mark">🎓</span><span>College Portal</span></div>
+  {% if session.get('student_id') %}
+    <div class="portal-role">Student Portal</div>
+    <nav class="portal-nav">
+      <a href="/dashboard" class="{{ 'active' if request.path == '/dashboard' else '' }}"><i>⌂</i>Dashboard</a>
+      <a href="/attendance" class="{{ 'active' if request.path == '/attendance' else '' }}"><i>▥</i>Attendance</a>
+      <a href="/timetable" class="{{ 'active' if request.path == '/timetable' else '' }}"><i>▦</i>Timetable</a>
+      <a href="/marks" class="{{ 'active' if request.path == '/marks' else '' }}"><i>▤</i>Marks</a>
+      <a href="/results" class="{{ 'active' if request.path == '/results' else '' }}"><i>▥</i>Results</a>
+      <a href="/notices" class="{{ 'active' if request.path == '/notices' else '' }}"><i>⚑</i>Notices</a>
+      <a href="/assignments" class="{{ 'active' if request.path == '/assignments' else '' }}"><i>▣</i>Assignments</a>
+      <a href="/study-materials" class="{{ 'active' if request.path == '/study-materials' else '' }}"><i>▤</i>Study Materials</a>
+      <a href="/chat" class="{{ 'active' if request.path == '/chat' else '' }}"><i>💬</i>Chat</a>
+      <a href="/profile" class="{{ 'active' if request.path == '/profile' else '' }}"><i>♙</i>Profile</a>
+      <a href="/student-account" class="{{ 'active' if request.path == '/student-account' else '' }}"><i>⚙</i>Account</a>
+      <a href="/logout" class="danger"><i>↪</i>Logout</a>
+    </nav>
+  {% elif session.get('teacher_id') %}
+    <div class="portal-role">Teacher Portal</div>
+    <nav class="portal-nav">
+      <a href="/teacher-dashboard" class="{{ 'active' if request.path == '/teacher-dashboard' else '' }}"><i>⌂</i>Dashboard</a>
+      <a href="/teacher-attendance" class="{{ 'active' if request.path == '/teacher-attendance' else '' }}"><i>▥</i>Attendance</a>
+      <a href="/teacher-timetable" class="{{ 'active' if request.path.startswith('/teacher-timetable') else '' }}"><i>▦</i>Timetable</a>
+      <a href="/teacher-marks" class="{{ 'active' if request.path == '/teacher-marks' else '' }}"><i>▤</i>Marks</a>
+      <a href="/teacher-results" class="{{ 'active' if request.path == '/teacher-results' else '' }}"><i>▥</i>Results</a>
+      <a href="/teacher-notices" class="{{ 'active' if request.path == '/teacher-notices' else '' }}"><i>⚑</i>Notices</a>
+      <a href="/teacher-assignments" class="{{ 'active' if request.path == '/teacher-assignments' else '' }}"><i>▣</i>Assignments</a>
+      <a href="/manage-pdfs" class="{{ 'active' if request.path == '/manage-pdfs' else '' }}"><i>▤</i>Study Materials</a>
+      <a href="/chat" class="{{ 'active' if request.path == '/chat' else '' }}"><i>💬</i>Chat</a>
+      <a href="/teacher-account" class="{{ 'active' if request.path == '/teacher-account' else '' }}"><i>⚙</i>Account</a>
+      <a href="/teacher-logout" class="danger"><i>↪</i>Logout</a>
+    </nav>
+  {% elif session.get('admin_id') %}
+    <div class="portal-role">Administration</div>
+    <nav class="portal-nav">
+      <a href="/admin-dashboard" class="{{ 'active' if request.path == '/admin-dashboard' else '' }}"><i>⌂</i>Dashboard</a>
+      <a href="/admin-students" class="{{ 'active' if request.path == '/admin-students' else '' }}"><i>♙</i>Students</a>
+      <a href="/admin-teachers" class="{{ 'active' if request.path == '/admin-teachers' else '' }}"><i>♙</i>Teachers</a>
+      <a href="/admin-attendance" class="{{ 'active' if request.path == '/admin-attendance' else '' }}"><i>▥</i>Attendance</a>
+      <a href="/admin-timetable" class="{{ 'active' if request.path == '/admin-timetable' else '' }}"><i>▦</i>Timetable</a>
+      <a href="/admin-marks" class="{{ 'active' if request.path == '/admin-marks' else '' }}"><i>▤</i>Marks</a>
+      <a href="/admin-results" class="{{ 'active' if request.path == '/admin-results' else '' }}"><i>🏆</i>Results</a>
+      <a href="/admin-notices" class="{{ 'active' if request.path == '/admin-notices' else '' }}"><i>⚑</i>Notices</a>
+      <a href="/admin-assignments" class="{{ 'active' if request.path == '/admin-assignments' else '' }}"><i>▣</i>Assignments</a>
+      <a href="/admin-study-materials" class="{{ 'active' if request.path == '/admin-study-materials' else '' }}"><i>▤</i>Study Materials</a>
+      <a href="/chat" class="{{ 'active' if request.path == '/chat' else '' }}"><i>💬</i>Chat</a>
+      <a href="/admin-notifications" class="{{ 'active' if request.path == '/admin-notifications' else '' }}"><i>🔔</i>Notifications{% if notifications_count is defined and notifications_count %} <span style="margin-left:auto;background:#b88a45;color:#17120f;border-radius:10px;padding:1px 7px;font-size:10px;">{{ notifications_count }}</span>{% endif %}</a>
+      <a href="/admin-logout" class="danger"><i>↪</i>Logout</a>
+    </nav>
+  {% endif %}
+  <div class="portal-user">Academic Management System</div>
+</aside>
+
+<style>
+.portal-update-toast{position:fixed;right:22px;bottom:22px;z-index:9999;background:#17120f;color:#fff;padding:13px 16px;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.25);max-width:340px;font-size:13px;display:none;border-left:4px solid #b88a45}
+</style>
+<div id="portalUpdateToast" class="portal-update-toast"></div>
+<script>
+(function(){
+  const toast=document.getElementById('portalUpdateToast');
+  let lastId=Number('{{ portal_latest_event_id|default(0) }}');
+  function beep(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;const c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=880;g.gain.value=.045;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.16);}catch(e){}}
+  function poll(){fetch('/portal-events?after='+lastId,{cache:'no-store'}).then(r=>r.json()).then(d=>{(d.events||[]).forEach(e=>{lastId=Math.max(lastId,e.id);toast.textContent='🔔 '+e.message;toast.style.display='block';beep();clearTimeout(window.__portalToastTimer);window.__portalToastTimer=setTimeout(()=>toast.style.display='none',4500);});}).catch(()=>{});}
+  setInterval(poll,4000);
+})();
+</script>

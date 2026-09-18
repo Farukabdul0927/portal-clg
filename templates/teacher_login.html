@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>College Portal | Teacher Login</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Arial,Helvetica,sans-serif;color:#3b2416;background:#17120f}
+body:before{content:"";position:fixed;inset:0;background:linear-gradient(rgba(23,18,15,.91),rgba(59,36,22,.84)),url("{{ url_for('static', filename='images/college_background.png') }}") center/cover;z-index:-1}
+.login-box{width:min(430px,100%);background:#fffdf9;border:1px solid #d9cbb9;border-radius:14px;padding:42px;box-shadow:0 28px 70px rgba(0,0,0,.45)}
+.icon{text-align:center;font-size:45px;margin-bottom:12px}
+h1{text-align:center;font-family:Georgia,"Times New Roman",serif;color:#3b2416;margin:0 0 7px;font-size:30px}
+.subtitle{text-align:center;color:#756a5f;margin:0 0 28px;font-size:13px}
+label{display:block;margin:0 0 7px;font-size:11px;font-weight:bold;letter-spacing:1px;color:#5a3821}
+input{width:100%;padding:13px 14px;margin-bottom:18px;border:1px solid #cfc2b0;border-radius:6px;background:#fffdfa;color:#3b2416;font-size:15px}
+input:focus{outline:none;border-color:#b88a45;box-shadow:0 0 0 3px rgba(184,138,69,.13)}
+button{width:100%;padding:13px;border:1px solid #3b2416;border-radius:6px;background:#3b2416;color:#fff;font-size:15px;font-weight:bold;cursor:pointer}
+button:hover{background:#5a3821}.back{display:block;text-align:center;margin-top:18px;text-decoration:none;color:#5a3821;font-size:12px;font-weight:bold}
+</style>
+</head>
+<body>
+<div class="login-box">
+<div class="icon">👨‍🏫</div>
+<h1>Teacher Login</h1>
+<p class="subtitle">College Portal • Faculty Access</p>
+<form method="POST" action="/teacher-login">
+<label>YEAR</label>
+<select name="year" required style="width:100%;padding:13px 14px;margin-bottom:18px;border:1px solid #cfc2b0;border-radius:6px;background:#fffdfa;color:#3b2416;font-size:15px">
+<option value="">Select your year</option><option value="1st Year">1st Year</option><option value="2nd Year">2nd Year</option><option value="3rd Year">3rd Year</option><option value="4th Year">4th Year</option>
+</select>
+<label>GROUP / SECTION</label>
+<select name="group_name" required style="width:100%;padding:13px 14px;margin-bottom:18px;border:1px solid #cfc2b0;border-radius:6px;background:#fffdfa;color:#3b2416;font-size:15px">
+<option value="">Select your group</option><option value="CSE-A">CSE-A</option><option value="CSE-B">CSE-B</option><option value="ECE">ECE</option><option value="AIML">AIML</option>
+</select>
+<label>USERNAME</label>
+<input type="text" name="username" placeholder="Enter teacher username" required>
+<label>PASSWORD</label>
+<input type="password" name="password" placeholder="Enter password" required>
+<button type="submit">SIGN IN</button>
+</form>
+<a href="/" class="back">← Back to Main Login</a>
+</div>
+</body>
+</html>

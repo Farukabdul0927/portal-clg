@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Notice Management</title><link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}"></head>
+<body class="classic-page">{% include "sidebar.html" %}<main class="portal-main">
+<div class="page-topbar"><h1>Notice Management</h1><p>Review notices published through the portal.</p></div>
+<div class="card" style="padding:22px;overflow:auto;">{% if notices %}<table><thead><tr><th>Title</th><th>Group</th><th>Content</th></tr></thead><tbody>{% for n in notices %}<tr><td><strong>{{ n.title }}</strong></td><td>{{ n.group_name }}</td><td>{{ n.content }}</td></tr>{% endfor %}</tbody></table>{% else %}<div class="notice" style="padding:18px;">No notices available.</div>{% endif %}</div>
+</main></body></html>

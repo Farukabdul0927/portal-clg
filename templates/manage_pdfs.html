@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manage PDFs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}">
+</head>
+
+<body class="classic-page">
+{% include "sidebar.html" %}
+<main class="portal-main">
+
+<h1>📚 Manage PDFs</h1>
+
+<p>Teacher: {{ teacher.name }}</p>
+
+<form action="/upload-pdf" method="POST" enctype="multipart/form-data">
+
+    <input type="text"
+           name="title"
+           placeholder="PDF Title"
+           required>
+
+    <input type="file"
+           name="pdf_file"
+           accept=".pdf"
+           required>
+
+    <button type="submit">
+        Upload PDF
+    </button>
+
+</form>
+
+<h2>Uploaded PDFs</h2>
+
+{% if pdfs %}
+
+    {% for pdf in pdfs %}
+
+        <div>
+            <h3>{{ pdf.title }}</h3>
+
+            <p>{{ pdf.original_filename }}</p>
+
+            <a href="/pdf/{{ pdf.filename }}" target="_blank">
+                View PDF
+            </a>
+
+        </div>
+
+    {% endfor %}
+
+{% else %}
+
+    <p>No PDFs uploaded yet.</p>
+
+{% endif %}
+
+</main>
+</body>
+</html>

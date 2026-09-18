@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teacher Management</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        .back {
+            display: inline-block;
+            margin-bottom: 20px;
+            text-decoration: none;
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .table-box {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.10);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #111827;
+            color: white;
+            padding: 14px;
+            text-align: left;
+        }
+
+        td {
+            padding: 14px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .password {
+            font-family: monospace;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}">
+</head>
+
+<body class="classic-page">
+{% include "sidebar.html" %}
+<main class="portal-main">
+
+<div class="container">
+
+    <a href="/admin-dashboard" class="back">
+        ⬅ Back to Admin Portal
+    </a>
+
+    <h1>👨‍🏫 Teacher Management</h1>
+
+    <div class="table-box" style="margin-bottom:20px;">
+        <h2>Add Teacher</h2>
+        <form method="POST" action="/admin-add-teacher" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+          <label>Name<input name="name" required style="width:100%;padding:10px;box-sizing:border-box;"></label>
+          <label>Username<input name="username" required style="width:100%;padding:10px;box-sizing:border-box;"></label>
+          <label>Password<input name="password" required style="width:100%;padding:10px;box-sizing:border-box;"></label>
+          <label>Subject<input name="subject" required style="width:100%;padding:10px;box-sizing:border-box;"></label>
+          <label>Groups<br><select name="groups" multiple required style="width:100%;padding:10px;box-sizing:border-box;height:84px;"><option value="CSE-A">CSE-A</option><option value="CSE-B">CSE-B</option><option value="ECE">ECE</option></select></label>
+          <button type="submit" style="padding:11px 16px;background:#3b2416;color:#fff;border:0;border-radius:6px;font-weight:bold;">Add Teacher</button>
+        </form>
+    </div>
+
+    <div class="table-box">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Subject</th>
+                    <th>Username</th>
+                    <th>Password</th><th>Groups</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for teacher in teachers %}
+
+                <tr>
+                    <td>{{ teacher.name }}</td>
+                    <td>{{ teacher.subject }}</td>
+                    <td>{{ teacher.username }}</td>
+                    <td class="password">{{ teacher.password }}</td><td>{{ teacher.groups }}</td>
+                </tr>
+
+                {% else %}
+
+                <tr>
+                    <td colspan="5">
+                        No teachers found.
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+</main>
+</body>
+</html>

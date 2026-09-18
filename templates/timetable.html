@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Original Timetable - CSE-A</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #eef2f7;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+        }
+
+        h1 {
+            text-align: center;
+            color: #173b7a;
+        }
+
+        h2 {
+            text-align: center;
+            color: #444;
+        }
+
+        .student-info {
+            background: #f1f5ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        th, td {
+            border: 1px solid #999;
+            padding: 12px 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #173b7a;
+            color: white;
+        }
+
+        td:first-child {
+            font-weight: bold;
+            background: #eef2f7;
+        }
+
+        .lab {
+            background: #fff4d6;
+            font-weight: bold;
+        }
+
+        .library {
+            background: #e8f5e9;
+            font-weight: bold;
+        }
+
+        .sports {
+            background: #fce4ec;
+            font-weight: bold;
+        }
+
+        .break {
+            background: #eeeeee;
+            font-weight: bold;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 25px;
+            padding: 12px 20px;
+            background: #173b7a;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+
+        .back:hover {
+            background: #0f2b5c;
+        }
+
+        .course-info {
+            margin-top: 30px;
+        }
+
+        .course-info table {
+            min-width: 700px;
+        }
+
+        .course-info th {
+            background: #444;
+        }
+    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}">
+</head>
+
+<body class="classic-page">
+{% include "sidebar.html" %}
+<main class="portal-main">
+
+<div class="container">
+
+    <h1>📚 Class Timetable</h1>
+
+    <h2>
+        III B.Tech - V Semester | CSE-A
+    </h2>
+
+    <h2>
+        Academic Year 2026-27
+    </h2>
+
+    <div class="student-info">
+
+        <p>
+            <strong>Student:</strong>
+            {{ student.name }}
+        </p>
+
+        <p>
+            <strong>Roll Number:</strong>
+            {{ student.roll_number }}
+        </p>
+
+        <p>
+            <strong>Class:</strong>
+            {{ student.class_name }}
+        </p>
+
+        <p>
+            <strong>Year:</strong>
+            {{ student.year }}
+        </p>
+
+        <p>
+            <strong>Department:</strong>
+            {{ student.department }}
+        </p>
+
+    </div>
+
+    <div class="table-container">
+
+        <table>
+
+            <tr>
+                <th>Day</th>
+
+                <th>
+                    Period I<br>
+                    09:00 AM - 10:00 AM
+                </th>
+
+                <th>
+                    Period II<br>
+                    10:00 AM - 11:00 AM
+                </th>
+
+                <th>
+                    Period III<br>
+                    11:00 AM - 12:00 PM
+                </th>
+
+                <th>
+                    Period IV<br>
+                    12:45 PM - 01:40 PM
+                </th>
+
+                <th>
+                    Period V<br>
+                    01:40 PM - 02:35 PM
+                </th>
+
+                <th>
+                    Period VI<br>
+                    02:35 PM - 03:30 PM
+                </th>
+            </tr>
+
+          <!-- MONDAY -->
+
+<tr>
+    <td>MONDAY</td>
+
+    <td>{{ timetable.monday.split('|')[0] }}</td>
+    <td>{{ timetable.monday.split('|')[1] }}</td>
+    <td>{{ timetable.monday.split('|')[2] }}</td>
+    <td>{{ timetable.monday.split('|')[3] }}</td>
+    <td>{{ timetable.monday.split('|')[4] }}</td>
+    <td>{{ timetable.monday.split('|')[5] }}</td>
+</tr>
+
+
+<!-- TUESDAY -->
+
+<tr>
+    <td>TUESDAY</td>
+
+    <td>{{ timetable.tuesday.split('|')[0] }}</td>
+    <td>{{ timetable.tuesday.split('|')[1] }}</td>
+    <td>{{ timetable.tuesday.split('|')[2] }}</td>
+
+    <td colspan="3">
+        {{ timetable.tuesday.split('|')[3] }}
+    </td>
+</tr>
+
+
+<!-- WEDNESDAY -->
+
+<tr>
+    <td>WEDNESDAY</td>
+
+    <td>{{ timetable.wednesday.split('|')[0] }}</td>
+    <td>{{ timetable.wednesday.split('|')[1] }}</td>
+    <td>{{ timetable.wednesday.split('|')[2] }}</td>
+    <td>{{ timetable.wednesday.split('|')[3] }}</td>
+    <td>{{ timetable.wednesday.split('|')[4] }}</td>
+    <td>{{ timetable.wednesday.split('|')[5] }}</td>
+</tr>
+
+
+<!-- THURSDAY -->
+
+<tr>
+    <td>THURSDAY</td>
+
+    <td colspan="3">
+        {{ timetable.thursday.split('|')[0] }}
+    </td>
+
+    <td>{{ timetable.thursday.split('|')[1] }}</td>
+    <td>{{ timetable.thursday.split('|')[2] }}</td>
+    <td>{{ timetable.thursday.split('|')[3] }}</td>
+</tr>
+
+
+<!-- FRIDAY -->
+
+<tr>
+    <td>FRIDAY</td>
+
+    <td>{{ timetable.friday.split('|')[0] }}</td>
+    <td>{{ timetable.friday.split('|')[1] }}</td>
+    <td>{{ timetable.friday.split('|')[2] }}</td>
+
+    <td colspan="3">
+        {{ timetable.friday.split('|')[3] }}
+    </td>
+</tr>
+
+
+<!-- SATURDAY -->
+
+<tr>
+    <td>SATURDAY</td>
+
+    <td colspan="3">
+        {{ timetable.saturday.split('|')[0] }}
+    </td>
+
+    <td>{{ timetable.saturday.split('|')[1] }}</td>
+    <td>{{ timetable.saturday.split('|')[2] }}</td>
+    <td>{{ timetable.saturday.split('|')[3] }}</td>
+</tr>
+
+    <!-- COURSE DETAILS -->
+
+    <div class="course-info">
+
+        <h2>📖 Course Details</h2>
+
+        <div class="table-container">
+
+            <table>
+
+                <tr>
+                    <th>S.No</th>
+                    <th>Course Code</th>
+                    <th>Course Name</th>
+                    <th>Abbreviation</th>
+                    <th>Staff</th>
+                </tr>
+
+                <tr>
+                    <td>1</td>
+                    <td>23CS501</td>
+                    <td>Computer Networks</td>
+                    <td>CN</td>
+                    <td>Mr. M.V.N.S.S.R.K.S.Somayajulu</td>
+                </tr>
+
+                <tr>
+                    <td>2</td>
+                    <td>23CS502</td>
+                    <td>Data Warehousing and Data Mining</td>
+                    <td>DWD&DM</td>
+                    <td>Dr. Md. Ali Mirza</td>
+                </tr>
+
+                <tr>
+                    <td>3</td>
+                    <td>23CS503</td>
+                    <td>Object Oriented Analysis and Design</td>
+                    <td>OOAD</td>
+                    <td>—</td>
+                </tr>
+
+                <tr>
+                    <td>4</td>
+                    <td>23CSS04C</td>
+                    <td>Professional Elective Course – I</td>
+                    <td>PE-I</td>
+                    <td>—</td>
+                </tr>
+
+                <tr>
+                    <td>5</td>
+                    <td>23CSS05C</td>
+                    <td>
+                        Open Elective Course – I<br>
+                        (Wireless Communication System)
+                    </td>
+                    <td>WCS</td>
+                    <td>Mr. S. Rajeev</td>
+                </tr>
+
+                <tr>
+                    <td>6</td>
+                    <td>23CSS06P</td>
+                    <td>Computer Networks Lab</td>
+                    <td>CN LAB</td>
+                    <td>Mr. M.V.N.S.S.R.K.S.Somayajulu</td>
+                </tr>
+
+                <tr>
+                    <td>7</td>
+                    <td>23CSS07P</td>
+                    <td>Data Warehousing and Data Mining Lab</td>
+                    <td>DWD&DM LAB</td>
+                    <td>Dr. Md. Ali Mirza</td>
+                </tr>
+
+                <tr>
+                    <td>8</td>
+                    <td>23CSS08P</td>
+                    <td>
+                        Skill Oriented Course – III<br>
+                        MERN Stack Development
+                    </td>
+                    <td>SOC-III</td>
+                    <td>—</td>
+                </tr>
+
+                <tr>
+                    <td>9</td>
+                    <td>23CSS09P</td>
+                    <td>User Interface Design Using Flutter Lab</td>
+                    <td>Flutter Lab</td>
+                    <td>—</td>
+                </tr>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <a href="/dashboard" class="back">
+        ⬅ Back to Dashboard
+    </a>
+
+</div>
+
+</main>
+</body>
+</html>

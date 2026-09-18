@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Admin Notifications</title><link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}"></head>
+<body class="classic-page">{% include "sidebar.html" %}<main class="portal-main">
+<div class="page-topbar"><h1>Admin Notifications</h1><p>Activity updates from students, teachers and administration</p></div>
+<div class="card" style="padding:20px;">
+{% for n in notifications %}<div style="padding:16px 4px;border-bottom:1px solid #e2d6c7;"><strong>{{ n.message }}</strong><div style="margin-top:5px;color:var(--muted);font-size:12px;">{{ n.created_at.strftime('%d-%m-%Y %I:%M %p') }} · {{ n.actor_role|title }} · {{ n.group_name }}</div></div>{% else %}<p style="color:var(--muted);">No notifications yet.</p>{% endfor %}
+</div></main></body></html>

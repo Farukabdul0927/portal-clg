@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>College Notices</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            color: #222;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: auto;
+        }
+
+        /* =========================
+           HEADER
+        ========================= */
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .welcome {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #555;
+        }
+
+        /* =========================
+           NOTICE
+        ========================= */
+
+        .notice {
+            background: white;
+            padding: 22px;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.10);
+        }
+
+        .notice h2 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #222;
+        }
+
+        .date {
+            color: #777;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .teacher {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            color: #444;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        /* =========================
+           IMAGE
+        ========================= */
+
+        .notice-image {
+            display: block;
+            max-width: 100%;
+            max-height: 500px;
+            margin-top: 18px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        /* =========================
+           PDF
+        ========================= */
+
+        .pdf-box {
+            margin-top: 18px;
+            padding: 18px;
+            background: #f1f3f5;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .pdf-name {
+            margin-top: 6px;
+            color: #555;
+            word-break: break-word;
+        }
+
+        .pdf-button {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 11px 18px;
+            background: #222;
+            color: white;
+            text-decoration: none;
+            border-radius: 7px;
+        }
+
+        .pdf-button:hover {
+            background: #444;
+        }
+
+        /* =========================
+           EMPTY
+        ========================= */
+
+        .empty {
+            background: white;
+            padding: 35px;
+            text-align: center;
+            border-radius: 12px;
+            color: #777;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+        }
+
+        /* =========================
+           BACK BUTTON
+        ========================= */
+
+        .back {
+            display: block;
+            width: fit-content;
+            margin: 30px auto 10px;
+            padding: 11px 22px;
+            background: #222;
+            color: white;
+            text-decoration: none;
+            border-radius: 7px;
+        }
+
+        .back:hover {
+            background: #444;
+        }
+
+    </style>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}">
+</head>
+
+
+<body class="classic-page">
+{% include "sidebar.html" %}
+<main class="portal-main">
+
+<div class="container">
+
+
+    <!-- =========================
+         PAGE TITLE
+    ========================= -->
+
+    <h1>📢 College Notices</h1>
+
+
+    <!-- =========================
+         STUDENT INFORMATION
+    ========================= -->
+
+    <div class="welcome">
+
+        <h3>
+            Welcome, {{ student.name }} 👋
+        </h3>
+
+        <p>
+            <strong>Class:</strong>
+            {{ student.class_name }}
+        </p>
+
+    </div>
+
+
+    <!-- =========================
+         NOTICES
+    ========================= -->
+
+    {% if notices %}
+
+        {% for notice in notices %}
+
+            <div class="notice">
+
+
+                <!-- NOTICE TITLE -->
+
+                <h2>
+                    🔔 {{ notice.title }}
+                </h2>
+
+
+                <!-- DATE -->
+
+                <div class="date">
+
+                    📅 {{ notice.notice_date }}
+
+                </div>
+
+
+                <!-- TEACHER -->
+
+                {% if notice.teacher %}
+
+                    <div class="teacher">
+
+                        👨‍🏫
+                        <strong>Published by:</strong>
+                        {{ notice.teacher.name }}
+
+                    </div>
+
+                {% endif %}
+
+
+                <!-- MESSAGE -->
+
+                <div class="message">
+
+                    {{ notice.message }}
+
+                </div>
+
+
+                <!-- =========================
+                     ATTACHMENTS
+                ========================= -->
+
+                {% if notice.attachments %}
+
+                    {% for attachment in notice.attachments %}
+
+
+                        <!-- IMAGE -->
+
+                        {% if attachment.file_type == "image" %}
+
+                            <img
+                                class="notice-image"
+                                src="{{ url_for(
+                                    'notice_file',
+                                    filename=attachment.filename
+                                ) }}"
+                                alt="{{ attachment.original_filename }}"
+                            >
+
+
+                        <!-- PDF -->
+
+                        {% elif attachment.file_type == "pdf" %}
+
+                            <div class="pdf-box">
+
+                                <strong>
+                                    📕 PDF Attachment
+                                </strong>
+
+                                <div class="pdf-name">
+
+                                    {{ attachment.original_filename }}
+
+                                </div>
+
+                                <a
+                                    class="pdf-button"
+                                    href="{{ url_for(
+                                        'notice_file',
+                                        filename=attachment.filename
+                                    ) }}"
+                                    target="_blank"
+                                >
+                                    📄 Open PDF
+                                </a>
+
+                            </div>
+
+                        {% endif %}
+
+
+                    {% endfor %}
+
+                {% endif %}
+
+
+            </div>
+
+        {% endfor %}
+
+
+    {% else %}
+
+
+        <!-- =========================
+             NO NOTICES
+        ========================= -->
+
+        <div class="empty">
+
+            <h2>
+                📭 No Notices
+            </h2>
+
+            <p>
+                There are currently no notices available.
+            </p>
+
+        </div>
+
+
+    {% endif %}
+
+
+    <!-- =========================
+         BACK
+    ========================= -->
+
+    <a
+        class="back"
+        href="/dashboard"
+    >
+        ⬅ Back to Dashboard
+    </a>
+
+
+</div>
+
+</main>
+</body>
+
+</html>
