@@ -1,6 +1,0 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Timetable Management</title><link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}"></head>
-<body class="classic-page">{% include "sidebar.html" %}<main class="portal-main">
-<div class="page-topbar"><h1>Timetable Management</h1><p>Review timetable entries for student groups.</p></div>
-<div class="card" style="padding:22px;overflow:auto;">{% if rows %}<table><thead><tr><th>Group</th><th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th><th>Saturday</th></tr></thead><tbody>{% for r in rows %}<tr><td><strong>{{ r.group_name }}</strong></td><td>{{ r.monday }}</td><td>{{ r.tuesday }}</td><td>{{ r.wednesday }}</td><td>{{ r.thursday }}</td><td>{{ r.friday }}</td><td>{{ r.saturday }}</td></tr>{% endfor %}</tbody></table>{% else %}<div class="notice" style="padding:18px;">No timetable entries available.</div>{% endif %}</div>
-</main></body></html>

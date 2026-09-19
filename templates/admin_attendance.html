@@ -1,6 +1,0 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Attendance Management</title><link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}"></head>
-<body class="classic-page">{% include "sidebar.html" %}<main class="portal-main">
-<div class="page-topbar"><h1>Attendance Management</h1><p>Review attendance records across the college.</p></div>
-<div class="card" style="padding:22px;overflow:auto;">{% if records %}<table><thead><tr><th>Student</th><th>Roll Number</th><th>Group</th><th>Subject</th><th>Date</th><th>Status</th><th>Teacher</th></tr></thead><tbody>{% for r in records %}<tr><td>{{ r.student.name }}</td><td>{{ r.student.roll_number }}</td><td>{{ r.student.group_name }}</td><td>{{ r.subject }}</td><td>{{ r.display_date }}</td><td>{{ r.status }}</td><td>{{ r.teacher.name }}</td></tr>{% endfor %}</tbody></table>{% else %}<div class="notice" style="padding:18px;">No attendance records available.</div>{% endif %}</div>
-</main></body></html>

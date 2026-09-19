@@ -1,6 +1,0 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Study Materials Management</title><link rel="stylesheet" href="{{ url_for('static', filename='css/classic-ui.css') }}"></head>
-<body class="classic-page">{% include "sidebar.html" %}<main class="portal-main">
-<div class="page-topbar"><h1>Study Materials Management</h1><p>Review study materials uploaded by teachers.</p></div>
-<div class="card" style="padding:22px;overflow:auto;">{% if pdfs %}<table><thead><tr><th>Title</th><th>Original File</th><th>Group</th><th>Uploaded By</th><th>Date</th><th>Open</th></tr></thead><tbody>{% for p in pdfs %}<tr><td>{{ p.title }}</td><td>{{ p.original_filename }}</td><td>{{ p.group_name }}</td><td>{{ p.teacher.name }}</td><td>{{ p.upload_date }}</td><td><a href="/pdf/{{ p.filename }}" target="_blank">Open ↗</a></td></tr>{% endfor %}</tbody></table>{% else %}<div class="notice" style="padding:18px;">No study materials available.</div>{% endif %}</div>
-</main></body></html>
