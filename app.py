@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request, redirect, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from werkzeug.utils import secure_filename
 
 import os
 import time
+import secrets
+import re
 from urllib.parse import quote
 
 
@@ -37,6 +39,7 @@ app.config["CHAT_UPLOAD_FOLDER"] = CHAT_UPLOAD_FOLDER
 # =========================================================
 
 app.secret_key = os.environ.get("SECRET_KEY", "college_portal_secret_key")
+app.permanent_session_lifetime = timedelta(days=30)
 
 
 # =========================================================
@@ -132,6 +135,9 @@ class Student(db.Model):
     # CSE-A / CSE-B / ECE
     group_name = db.Column(db.String(20), nullable=False, default="CSE-A")
 
+    # Optional registered mobile number used for phone login and account recovery.
+    phone = db.Column(db.String(20), nullable=True, unique=True)
+
 
 # =========================================================
 # TEACHER TABLE
@@ -168,6 +174,9 @@ class Teacher(db.Model):
     # Teacher can work with all three groups; current login chooses one.
     groups = db.Column(db.String(100), nullable=False, default="CSE-A,CSE-B,ECE,AIML")
 
+    # Optional registered mobile number used for phone login and account recovery.
+    phone = db.Column(db.String(20), nullable=True, unique=True)
+
 
 # =========================================================
 # ADMIN TABLE
@@ -190,6 +199,9 @@ class Admin(db.Model):
         db.String(100),
         nullable=False
     )
+
+    # Optional registered mobile number used for admin phone login and recovery.
+    phone = db.Column(db.String(20), nullable=True, unique=True)
 
 
 # =========================================================
@@ -414,6 +426,20 @@ class ChatMessage(db.Model):
     attachment_name = db.Column(db.String(255), nullable=True)
     attachment_original_name = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+
+class PrivateChatMessage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_role = db.Column(db.String(20), nullable=False)
+    sender_id = db.Column(db.Integer, nullable=False)
+    sender_name = db.Column(db.String(100), nullable=False)
+    recipient_student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False, index=True)
+    message = db.Column(db.Text, nullable=True)
+    attachment_name = db.Column(db.String(255), nullable=True)
+    attachment_original_name = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    recipient = db.relationship("Student", backref="private_messages")
 
 
 def notify_portals(message, actor_role="system", group_name="ALL", event_type="update", year_name=None):
@@ -829,6 +855,7 @@ def add_student_from_form(actor_role):
     name = request.form.get("name", "").strip()
     roll_number = request.form.get("roll_number", "").strip().upper()
     group_name = request.form.get("group_name", "").strip().upper()
+    phone = normalize_phone(request.form.get("phone", "")) or None
 
     valid_years = {"1st Year", "2nd Year", "3rd Year", "4th Year"}
     valid_groups = {"CSE-A", "CSE-B", "ECE", "AIML"}
@@ -844,6 +871,8 @@ def add_student_from_form(actor_role):
 
     if Student.query.filter_by(roll_number=roll_number).first():
         return "This roll number already exists."
+    if phone and Student.query.filter_by(phone=phone).first():
+        return "This phone number is already registered to another student."
 
     batch, department = student_academic_details(year_name, group_name)
     username = make_unique_student_username(name, roll_number)
@@ -859,6 +888,7 @@ def add_student_from_form(actor_role):
         batch=batch,
         department=department,
         group_name=group_name,
+        phone=phone,
     )
     db.session.add(student)
     actor_name = "Admin"
@@ -877,12 +907,18 @@ with app.app_context():
 
     db.create_all()
     ensure_column("student", "group_name", "VARCHAR(20) NOT NULL DEFAULT 'CSE-A'")
+    ensure_column("student", "phone", "VARCHAR(20)")
     ensure_column("teacher", "groups", "VARCHAR(100) NOT NULL DEFAULT 'CSE-A,CSE-B,ECE'")
+    ensure_column("teacher", "phone", "VARCHAR(20)")
+    ensure_column("admin", "phone", "VARCHAR(20)")
     ensure_column("assignment", "group_name", "VARCHAR(20) NOT NULL DEFAULT 'ALL'")
     ensure_column("notice", "group_name", "VARCHAR(20) NOT NULL DEFAULT 'ALL'")
     ensure_column("pdf", "group_name", "VARCHAR(20) NOT NULL DEFAULT 'ALL'")
     ensure_column("timetable_data", "group_name", "VARCHAR(20) NOT NULL DEFAULT 'ALL'")
     ensure_column("portal_event", "year_name", "VARCHAR(30) NOT NULL DEFAULT 'ALL'")
+    db.session.execute(db.text("CREATE UNIQUE INDEX IF NOT EXISTS ux_student_phone ON student(phone) WHERE phone IS NOT NULL"))
+    db.session.execute(db.text("CREATE UNIQUE INDEX IF NOT EXISTS ux_teacher_phone ON teacher(phone) WHERE phone IS NOT NULL"))
+    db.session.execute(db.text("CREATE UNIQUE INDEX IF NOT EXISTS ux_admin_phone ON admin(phone) WHERE phone IS NOT NULL"))
     db.session.commit()
 
     # =====================================================
@@ -963,7 +999,8 @@ with app.app_context():
 
         admin = Admin(
             username="faruk",
-            password="admin"
+            password="admin",
+            phone=(os.environ.get("ADMIN_PHONE", "").strip() or None)
         )
 
         db.session.add(admin)
@@ -1197,6 +1234,82 @@ def inject_portal_event_state():
 
 
 # =========================================================
+# PHONE / OTP HELPERS
+# =========================================================
+
+def normalize_phone(phone):
+    raw = (phone or "").strip()
+    digits = re.sub(r"\D", "", raw)
+    if len(digits) == 10:
+        return "+91" + digits
+    if len(digits) == 12 and digits.startswith("91"):
+        return "+" + digits
+    if raw.startswith("+") and len(digits) >= 10:
+        return "+" + digits
+    return ""
+
+
+def find_account_by_phone(role, phone):
+    phone = normalize_phone(phone)
+    if not phone:
+        return None
+    if role == "teacher":
+        return Teacher.query.filter_by(phone=phone).first()
+    if role == "admin":
+        return Admin.query.filter_by(phone=phone).first()
+    return Student.query.filter_by(phone=phone).first()
+
+
+def send_reset_otp(phone):
+    # Real SMS uses Twilio Verify. Configure the three Render environment
+    # variables before enabling password recovery on the public deployment.
+    sid = os.environ.get("TWILIO_ACCOUNT_SID", "").strip()
+    token = os.environ.get("TWILIO_AUTH_TOKEN", "").strip()
+    service = os.environ.get("TWILIO_VERIFY_SERVICE_SID", "").strip()
+    demo = os.environ.get("OTP_DEMO_MODE", "0") == "1"
+
+    if sid and token and service:
+        try:
+            from twilio.rest import Client
+            Client(sid, token).verify.v2.services(service).verifications.create(
+                to=phone, channel="sms"
+            )
+            return True, "OTP sent to your registered phone number."
+        except Exception:
+            app.logger.exception("OTP SMS sending failed")
+            return False, "We could not send the OTP right now. Please try again."
+
+    if demo and not app.debug:
+        return False, "OTP demo mode is disabled for the public deployment."
+    if demo:
+        code = f"{secrets.randbelow(1000000):06d}"
+        session["reset_demo_otp"] = code
+        app.logger.warning("DEMO OTP for %s: %s", phone, code)
+        return True, "Demo OTP generated. Check the terminal running Flask."
+
+    return False, "Phone OTP is not configured yet. Add Twilio Verify settings in Render Environment Variables."
+
+
+def verify_reset_otp(phone, code):
+    sid = os.environ.get("TWILIO_ACCOUNT_SID", "").strip()
+    token = os.environ.get("TWILIO_AUTH_TOKEN", "").strip()
+    service = os.environ.get("TWILIO_VERIFY_SERVICE_SID", "").strip()
+    demo = os.environ.get("OTP_DEMO_MODE", "0") == "1"
+
+    if sid and token and service:
+        try:
+            from twilio.rest import Client
+            result = Client(sid, token).verify.v2.services(service).verification_checks.create(
+                to=phone, code=(code or "").strip()
+            )
+            return result.status == "approved"
+        except Exception:
+            app.logger.exception("OTP verification failed")
+            return False
+    return bool(demo and session.get("reset_demo_otp") == (code or "").strip())
+
+
+# =========================================================
 # MAIN LOGIN
 # =========================================================
 
@@ -1214,49 +1327,122 @@ def login():
 
 @app.route("/login", methods=["POST"])
 def do_login():
-
-    username = request.form.get(
-        "username",
-        ""
-    ).strip()
-
-    password = request.form.get(
-        "password",
-        ""
-    ).strip()
-
+    method = request.form.get("login_method", "username").strip().lower()
+    password = request.form.get("password", "").strip()
     selected_year = request.form.get("year", "").strip()
     selected_group = request.form.get("group_name", "").strip().upper()
+    remember = request.form.get("remember") == "1"
+
     if selected_year not in ("1st Year", "2nd Year", "3rd Year", "4th Year"):
         return "Please select your year."
     if selected_group not in ("CSE-A", "CSE-B", "ECE", "AIML"):
         return "Please select a valid group."
+    if not password:
+        return "Password is required."
 
-    student = Student.query.filter_by(
-        username=username
-    ).first()
+    if method == "phone":
+        phone = normalize_phone(request.form.get("phone", ""))
+        if not phone:
+            return "Please enter a valid 10-digit Indian mobile number."
+        student = Student.query.filter_by(phone=phone).first()
+    else:
+        username = request.form.get("username", "").strip()
+        if not username:
+            return "Username is required."
+        student = Student.query.filter_by(username=username).first()
 
     if student is None:
-
-        return "Username not found"
-
+        return "Account not found."
     if student.password != password:
-
-        return "Password is incorrect"
-
+        return "Password is incorrect."
     if student.year != selected_year:
         return "The selected year does not match this student account."
-
     if student.group_name != selected_group:
         return "The selected group does not match this student account."
 
     session.clear()
-
+    session.permanent = remember
     session["student_id"] = student.id
     session["group_name"] = selected_group
     session["year_name"] = selected_year
-
     return redirect("/dashboard")
+
+
+@app.route("/forgot")
+def forgot():
+    role = request.args.get("role", "student").strip().lower()
+    action = request.args.get("action", "password").strip().lower()
+    if role not in ("student", "teacher", "admin"):
+        role = "student"
+    if action not in ("password", "username"):
+        action = "password"
+    return render_template("forgot.html", role=role, action=action)
+
+
+@app.route("/forgot/send-otp", methods=["POST"])
+def forgot_send_otp():
+    role = request.form.get("role", "student").strip().lower()
+    action = request.form.get("action", "password").strip().lower()
+    phone = normalize_phone(request.form.get("phone", ""))
+    if role not in ("student", "teacher", "admin") or action not in ("password", "username"):
+        return "Invalid recovery request."
+    account = find_account_by_phone(role, phone)
+    if account is None:
+        return "No account is registered with that phone number. Add the phone number in Account Settings first."
+    ok, message = send_reset_otp(phone)
+    if not ok:
+        return message
+    session["reset_role"] = role
+    session["reset_action"] = action
+    session["reset_phone"] = phone
+    session["reset_started"] = int(time.time())
+    return render_template("verify_otp.html", role=role, action=action, phone=phone)
+
+
+@app.route("/forgot/verify", methods=["POST"])
+def forgot_verify():
+    role = session.get("reset_role")
+    action = session.get("reset_action")
+    phone = session.get("reset_phone")
+    if role not in ("student", "teacher", "admin") or action not in ("password", "username") or not phone:
+        return redirect("/forgot")
+    if int(time.time()) - int(session.get("reset_started", 0)) > 600:
+        session.pop("reset_phone", None)
+        return "OTP expired. Please request a new OTP."
+    if not verify_reset_otp(phone, request.form.get("otp", "")):
+        return "Invalid OTP. Please try again."
+    account = find_account_by_phone(role, phone)
+    if account is None:
+        return "Account not found."
+    if action == "username":
+        username = account.username
+        for key in ("reset_role", "reset_action", "reset_phone", "reset_started", "reset_demo_otp"):
+            session.pop(key, None)
+        return render_template("recovered_username.html", username=username, role=role)
+    return render_template("reset_password.html", role=role, phone=phone)
+
+
+@app.route("/forgot/reset-password", methods=["POST"])
+def forgot_reset_password():
+    role = session.get("reset_role")
+    action = session.get("reset_action")
+    phone = session.get("reset_phone")
+    if role not in ("student", "teacher", "admin") or action != "password" or not phone:
+        return redirect("/forgot")
+    password = request.form.get("password", "").strip()
+    confirm = request.form.get("confirm_password", "").strip()
+    if len(password) < 4:
+        return "Password must be at least 4 characters."
+    if password != confirm:
+        return "Passwords do not match."
+    account = find_account_by_phone(role, phone)
+    if account is None:
+        return "Account not found."
+    account.password = password
+    db.session.commit()
+    for key in ("reset_role", "reset_action", "reset_phone", "reset_started", "reset_demo_otp"):
+        session.pop(key, None)
+    return redirect("/?reset=success")
 
 
 # =========================================================
@@ -1277,45 +1463,34 @@ def teacher_login():
 
 @app.route("/teacher-login", methods=["POST"])
 def do_teacher_login():
-
-    username = request.form.get(
-        "username",
-        ""
-    ).strip()
-
-    password = request.form.get(
-        "password",
-        ""
-    ).strip()
-
+    method = request.form.get("login_method", "username").strip().lower()
+    password = request.form.get("password", "").strip()
     selected_year = request.form.get("year", "").strip()
     selected_group = request.form.get("group_name", "").strip().upper()
+    remember = request.form.get("remember") == "1"
     if selected_year not in ("1st Year", "2nd Year", "3rd Year", "4th Year"):
         return "Please select your year."
     if selected_group not in ("CSE-A", "CSE-B", "ECE", "AIML"):
         return "Please select a valid group."
-
-    teacher = Teacher.query.filter_by(
-        username=username
-    ).first()
-
-    if teacher and teacher.password == password:
-
-        allowed_groups = [g.strip().upper() for g in (teacher.groups or "CSE-A,CSE-B,ECE,AIML").split(",")]
-        if selected_group not in allowed_groups:
-            return "This teacher is not assigned to the selected group."
-
-        session.clear()
-
-        session["teacher_id"] = teacher.id
-        session["group_name"] = selected_group
-        session["year_name"] = selected_year
-
-        return redirect(
-            "/teacher-dashboard"
-        )
-
-    return "Invalid teacher username or password"
+    if method == "phone":
+        phone = normalize_phone(request.form.get("phone", ""))
+        teacher = Teacher.query.filter_by(phone=phone).first() if phone else None
+    else:
+        username = request.form.get("username", "").strip()
+        teacher = Teacher.query.filter_by(username=username).first() if username else None
+    if not teacher:
+        return "Teacher account not found."
+    if teacher.password != password:
+        return "Password is incorrect."
+    allowed_groups = [g.strip().upper() for g in (teacher.groups or "CSE-A,CSE-B,ECE,AIML").split(",")]
+    if selected_group not in allowed_groups:
+        return "This teacher is not assigned to the selected group."
+    session.clear()
+    session.permanent = remember
+    session["teacher_id"] = teacher.id
+    session["group_name"] = selected_group
+    session["year_name"] = selected_year
+    return redirect("/teacher-dashboard")
 
 
 # =========================================================
@@ -1336,33 +1511,23 @@ def admin_login():
 
 @app.route("/admin-login", methods=["POST"])
 def do_admin_login():
+    method = request.form.get("login_method", "username").strip().lower()
+    password = request.form.get("password", "").strip()
 
-    username = request.form.get(
-        "username",
-        ""
-    ).strip()
-
-    password = request.form.get(
-        "password",
-        ""
-    ).strip()
-
-    admin = Admin.query.filter_by(
-        username=username
-    ).first()
+    if method == "phone":
+        phone = normalize_phone(request.form.get("phone", ""))
+        admin = Admin.query.filter_by(phone=phone).first() if phone else None
+    else:
+        username = request.form.get("username", "").strip()
+        admin = Admin.query.filter_by(username=username).first() if username else None
 
     if admin and admin.password == password:
-
         session.clear()
-
         session["admin_id"] = admin.id
+        session.permanent = request.form.get("remember") == "1"
+        return redirect("/admin-dashboard")
 
-        return redirect(
-            "/admin-dashboard"
-        )
-
-    return "Invalid admin username or password"
-
+    return "Invalid admin username/phone or password"
 
 
 
@@ -1671,7 +1836,9 @@ def teacher_timetable():
 
     return render_template(
         "teacher_timetable.html",
-        timetable=timetable
+        timetable=timetable,
+        timetable_group=current_group(),
+        timetable_year=current_year()
     )
 # =========================================================
 # EDIT TEACHER TIMETABLE
@@ -2109,6 +2276,7 @@ def student_account():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
+        phone = normalize_phone(request.form.get("phone", "")) or None
 
         if not username or not password:
             return "Username and password cannot be empty."
@@ -2122,8 +2290,12 @@ def student_account():
         if existing_student:
             return "This username is already used by another student."
 
+        if phone and Student.query.filter(Student.phone == phone, Student.id != student.id).first():
+            return "This phone number is already used by another student."
+
         student.username = username
         student.password = password
+        student.phone = phone
 
         db.session.commit()
 
@@ -2272,29 +2444,44 @@ def attendance():
 
 @app.route("/timetable")
 def timetable():
-
     student_id = session.get("student_id")
-
     if not student_id:
         return redirect("/")
-
     student = db.session.get(Student, student_id)
-
     if student is None:
         session.clear()
         return redirect("/")
 
-    # Get timetable from database
-    timetable = TimetableData.query.filter(TimetableData.group_name.in_([current_group(), "CSE", "ALL"])).order_by(TimetableData.id.desc()).first()
+    group = student.group_name or current_group()
+    year = student.year or current_year()
+    rows = TimetableData.query.filter(TimetableData.group_name.in_([group, "CSE", "ALL"])).order_by(TimetableData.id.desc()).all()
+    timetable = next((r for r in rows if r.group_name == group), None) or next((r for r in rows if r.group_name == "CSE"), None) or next((r for r in rows if r.group_name == "ALL"), None)
 
+    # Create a default schedule when no record exists, so the student never gets
+    # the old "Timetable is not available" dead-end.
     if timetable is None:
-        return "Timetable is not available."
+        timetable = TimetableData(
+            monday="PE-I|OOAD|WCS|CN|DWD&DM|Library",
+            tuesday="CN|DWD&DM|OOAD|SOC-III|Library|Sports",
+            wednesday="CN|DWD&DM|OOAD|WCS|PE-I|Sports",
+            thursday="Flutter Lab|CN|WCS|Library|PE-I|OOAD",
+            friday="DWD&DM|PE-I|OOAD|CN LAB|WCS|Library",
+            saturday="CN LAB|CN|WCS|DWD&DM LAB|PE-I|Sports",
+            group_name=group
+        )
+        db.session.add(timetable)
+        db.session.commit()
 
-    return render_template(
-        "timetable.html",
-        student=student,
-        timetable=timetable
-    )
+    def slots(value):
+        values = [v.strip() for v in (value or "").split("|")]
+        return (values + ["—"] * 6)[:6]
+
+    timetable_slots = {
+        "monday": slots(timetable.monday), "tuesday": slots(timetable.tuesday),
+        "wednesday": slots(timetable.wednesday), "thursday": slots(timetable.thursday),
+        "friday": slots(timetable.friday), "saturday": slots(timetable.saturday)
+    }
+    return render_template("timetable.html", student=student, timetable=timetable, timetable_slots=timetable_slots, timetable_group=group, timetable_year=year)
 
 
 # =========================================================
@@ -2464,6 +2651,7 @@ def teacher_account():
 
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
+        phone = normalize_phone(request.form.get("phone", "")) or None
 
         if not username or not password:
             return "Username and password cannot be empty."
@@ -2476,8 +2664,12 @@ def teacher_account():
         if existing_teacher:
             return "This username is already used by another teacher."
 
+        if phone and Teacher.query.filter(Teacher.phone == phone, Teacher.id != teacher.id).first():
+            return "This phone number is already used by another teacher."
+
         teacher.username = username
         teacher.password = password
+        teacher.phone = phone
 
         db.session.commit()
 
@@ -2859,6 +3051,134 @@ def chat_file(filename):
         return redirect("/")
     return send_from_directory(app.config["CHAT_UPLOAD_FOLDER"], filename, as_attachment=True)
 
+# =========================================================
+# PRIVATE CHAT BY STUDENT ROLL NUMBER
+# =========================================================
+
+def private_chat_identity():
+    identity = get_chat_identity()
+    if not identity:
+        return None
+    role, user_id, user_name, group, year = identity
+    return role, user_id, user_name
+
+
+def private_message_visible(message, role, user_id, target_student_id):
+    return (message.sender_role == role and message.sender_id == user_id and message.recipient_student_id == target_student_id) or (message.sender_role == "student" and message.sender_id == target_student_id and role == "student" and user_id == message.recipient_student_id)
+
+
+@app.route("/private-chat")
+def private_chat():
+    identity = private_chat_identity()
+    if not identity:
+        return redirect("/")
+    role, user_id, user_name = identity
+    roll = request.args.get("roll", "").strip().upper()
+    target = Student.query.filter_by(roll_number=roll).first() if roll else None
+    # A student may enter their own roll number to view their private inbox.
+    # Sending to yourself remains blocked.
+    messages = []
+    if target:
+        q = PrivateChatMessage.query.filter(PrivateChatMessage.recipient_student_id == target.id)
+        incoming = q.filter(PrivateChatMessage.sender_role == "student", PrivateChatMessage.sender_id == target.id).all()
+        outgoing = q.filter(PrivateChatMessage.sender_role == role, PrivateChatMessage.sender_id == user_id).all()
+        # A student-to-student conversation is shared by recipient id + sender id.
+        if role == "student":
+            if target.id == user_id:
+                messages = PrivateChatMessage.query.filter(
+                    PrivateChatMessage.recipient_student_id == user_id
+                ).order_by(PrivateChatMessage.id.asc()).all()
+            else:
+                messages = PrivateChatMessage.query.filter(
+                    ((PrivateChatMessage.recipient_student_id == target.id) & (PrivateChatMessage.sender_role == "student") & (PrivateChatMessage.sender_id == user_id)) |
+                    ((PrivateChatMessage.recipient_student_id == user_id) & (PrivateChatMessage.sender_role == "student") & (PrivateChatMessage.sender_id == target.id))
+                ).order_by(PrivateChatMessage.id.asc()).all()
+        else:
+            messages = PrivateChatMessage.query.filter(
+                (PrivateChatMessage.recipient_student_id == target.id) &
+                (PrivateChatMessage.sender_role == role) &
+                (PrivateChatMessage.sender_id == user_id)
+            ).order_by(PrivateChatMessage.id.asc()).all()
+    return render_template("private_chat.html", identity=identity, target=target, roll=roll, messages=messages)
+
+
+@app.route("/private-chat/send", methods=["POST"])
+def private_chat_send():
+    identity = private_chat_identity()
+    if not identity:
+        return redirect("/")
+    role, user_id, user_name = identity
+    roll = request.form.get("roll", "").strip().upper()
+    target = Student.query.filter_by(roll_number=roll).first()
+    if not target:
+        return "Student roll number not found."
+    if role == "student" and target.id == user_id:
+        return "You cannot start a private chat with yourself."
+    message = request.form.get("message", "").strip()
+    uploaded = request.files.get("attachment")
+    if not message and (not uploaded or not uploaded.filename):
+        return "Type a message or choose a file."
+    filename = original = None
+    if uploaded and uploaded.filename:
+        original = uploaded.filename
+        filename = f"private_{int(time.time()*1000)}_{secure_filename(original)}"
+        uploaded.save(os.path.join(app.config["CHAT_UPLOAD_FOLDER"], filename))
+    db.session.add(PrivateChatMessage(sender_role=role, sender_id=user_id, sender_name=user_name, recipient_student_id=target.id, message=message or None, attachment_name=filename, attachment_original_name=original))
+    notify_portals(f"New private message for {target.name} from {user_name}", role, target.group_name, "chat", target.year)
+    db.session.commit()
+    return redirect("/private-chat?roll=" + quote(roll))
+
+
+@app.route("/private-chat-messages")
+def private_chat_messages_api():
+    identity = private_chat_identity()
+    if not identity:
+        return {"messages": []}
+    role, user_id, _ = identity
+    roll = request.args.get("roll", "").strip().upper()
+    target = Student.query.filter_by(roll_number=roll).first()
+    if not target:
+        return {"messages": []}, 403
+    try:
+        after = int(request.args.get("after", "0"))
+    except ValueError:
+        after = 0
+    if role == "student":
+        if target.id == user_id:
+            rows = PrivateChatMessage.query.filter(
+                PrivateChatMessage.id > after,
+                PrivateChatMessage.recipient_student_id == user_id
+            ).order_by(PrivateChatMessage.id.asc()).limit(50).all()
+        else:
+            rows = PrivateChatMessage.query.filter(
+                PrivateChatMessage.id > after,
+                ((PrivateChatMessage.recipient_student_id == target.id) & (PrivateChatMessage.sender_role == "student") & (PrivateChatMessage.sender_id == user_id)) |
+                ((PrivateChatMessage.recipient_student_id == user_id) & (PrivateChatMessage.sender_role == "student") & (PrivateChatMessage.sender_id == target.id))
+            ).order_by(PrivateChatMessage.id.asc()).limit(50).all()
+    else:
+        rows = PrivateChatMessage.query.filter(PrivateChatMessage.id > after, PrivateChatMessage.recipient_student_id == target.id, PrivateChatMessage.sender_role == role, PrivateChatMessage.sender_id == user_id).order_by(PrivateChatMessage.id.asc()).limit(50).all()
+    return {"messages":[{"id":m.id,"sender_name":m.sender_name,"sender_role":m.sender_role,"sender_id":m.sender_id,"message":m.message or "","attachment_name":m.attachment_name or "","attachment_original_name":m.attachment_original_name or "","created_at":m.created_at.strftime("%d/%m/%Y %H:%M")} for m in rows]}
+
+
+@app.route("/private-chat-file/<path:filename>")
+def private_chat_file(filename):
+    identity = private_chat_identity()
+    if not identity:
+        return redirect("/")
+    role, user_id, _ = identity
+    message = PrivateChatMessage.query.filter_by(attachment_name=filename).first()
+    if not message:
+        return "File not found.", 404
+    allowed = False
+    if role == "student":
+        allowed = message.recipient_student_id == user_id or (message.sender_role == "student" and message.sender_id == user_id)
+    else:
+        allowed = message.sender_role == role and message.sender_id == user_id
+    if not allowed:
+        return "You are not allowed to access this file.", 403
+    return send_from_directory(app.config["CHAT_UPLOAD_FOLDER"], filename, as_attachment=True)
+
+
 @app.route("/portal-events")
 def portal_events():
     identity = get_chat_identity()
@@ -2885,6 +3205,19 @@ def admin_notifications():
         n.is_read = True
     db.session.commit()
     return render_template("admin_notifications.html", notifications=notifications)
+
+
+@app.route("/admin-account", methods=["POST"])
+def admin_account_update():
+    admin, response = admin_guard()
+    if response:
+        return response
+    phone = normalize_phone(request.form.get("phone", "")) or None
+    if phone and Admin.query.filter(Admin.phone == phone, Admin.id != admin.id).first():
+        return "This phone number is already used by another admin."
+    admin.phone = phone
+    db.session.commit()
+    return redirect("/admin-dashboard")
 
 
 @app.route("/admin-dashboard")
@@ -2976,13 +3309,16 @@ def admin_add_teacher():
     name=request.form.get("name","").strip()
     username=request.form.get("username","").strip()
     password=request.form.get("password","").strip()
+    phone=normalize_phone(request.form.get("phone", "")) or None
     subject=request.form.get("subject","").strip()
     groups=request.form.getlist("groups")
     if not name or not username or not password or not subject or not groups:
         return "All teacher fields are required."
     if Teacher.query.filter_by(username=username).first():
         return "This teacher username already exists."
-    teacher=Teacher(name=name,username=username,password=password,subject=subject,groups=",".join(groups))
+    if phone and Teacher.query.filter_by(phone=phone).first():
+        return "This phone number is already registered to another teacher."
+    teacher=Teacher(name=name,username=username,password=password,subject=subject,groups=",".join(groups),phone=phone)
     db.session.add(teacher)
     notify_admin(f"Admin added teacher {name} for {', '.join(groups)}", "admin", "ALL")
     db.session.commit()
